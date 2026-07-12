@@ -147,10 +147,26 @@ O pipeline do GitHub Actions executa automaticamente:
 }
 ```
 
-## Experiências e desafios
+## Experiências e Desafios
 
-*[Seção a ser preenchida após o desenvolvimento]*
+### Desafios Encontrados
 
-- Desafios encontrados durante a implementação
-- Decisões técnicas tomadas
-- Aprendizados do projeto
+O principal desafio foi a configuração do ambiente de desenvolvimento no Windows com WSL2. A conexão com o MongoDB Atlas apresentou problemas de resolução DNS na rede utilizada, o que exigiu uma mudança de estratégia. Migrei para o uso do MongoDB local via Docker Compose, solução mais robusta e alinhada com os requisitos do projeto.
+
+A configuração do `mongodb-memory-server` para os testes unitários também foi bem desafiador, exigindo a especificação da versão exata do MongoDB no `package.json`, o que me deu bastante trabalho.
+
+### Decisões Técnicas
+
+- **MongoDB** foi escolhido pela natureza flexível dos dados de blog e pela excelente integração com Node.js via Mongoose
+- **Separação entre app.js e server.js** permite que os testes importem apenas a aplicação sem abrir porta de rede
+- **Docker Compose com dois serviços** garante paridade entre ambiente de desenvolvimento e produção
+- **mongodb-memory-server nos testes** garante isolamento e velocidade sem dependência de banco externo
+
+### Aprendizados
+
+- Ciclo completo de desenvolvimento de uma API REST com Node.js e Express
+- Persistência com MongoDB e Mongoose, incluindo validações e índices de texto
+- Containerização com Docker e orquestração com Docker Compose
+- Configuração de CI/CD com GitHub Actions
+- Importância dos testes unitários isolados para qualidade do código
+- Configuração do ambiente WSL2 + Ubuntu
