@@ -1,16 +1,25 @@
-version: '3.8'
-
 services:
   api:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - PORT=3000
       - MONGODB_URI=${MONGODB_URI}
       - NODE_ENV=production
     depends_on:
       - mongodb
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: http://localhost:3001
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
     restart: unless-stopped
 
   mongodb:
