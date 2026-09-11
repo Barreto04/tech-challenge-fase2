@@ -6,60 +6,38 @@ Aplicação de Blog Dinâmico desenvolvida ao longo do curso, com API REST (Fase
 
 https://github.com/Barreto04/tech-challenge-fase2
 
+---
+
+# Fase 03 — Frontend React + Integração
+
+Frontend em React + Tailwind CSS, consumindo a API REST desenvolvida na Fase 02, com autenticação, CRUD completo de posts e busca por palavra-chave.
+
 ## Tecnologias
 
-**Backend**
-- **Node.js + Express** — API REST
-- **MongoDB + Mongoose** — Banco de dados e ODM
-- **Jest + Supertest** — Testes unitários
-
-**Frontend**
 - **React** — Interface de usuário
 - **Tailwind CSS** — Estilização
 - **React Router** — Navegação
 - **Context API** — Gerenciamento de estado (autenticação)
 - **Axios** — Requisições HTTP
 - **Nginx** — Servidor de arquivos estáticos em produção
+- **Docker + Docker Compose** — Containerização (API + frontend + MongoDB)
+- **GitHub Actions** — CI/CD (testes e build automatizados)
 
-**Infraestrutura**
-- **Docker + Docker Compose** — Containerização
-- **GitHub Actions** — CI/CD
+## Estrutura do frontend
 
-## Estrutura do projeto
+```
+frontend/
+├── src/
+│   ├── App.js
+│   ├── components/         # Navbar, PostCard, PrivateRoute
+│   ├── context/            # AuthContext
+│   ├── pages/               # Home, PostDetail, PostForm, Admin, Login
+│   └── services/            # api.js (Axios)
+├── Dockerfile
+└── nginx.conf
+```
 
-tech-challenge-fase2/
-├── src/ # API Node.js (Fase 02)
-│ ├── config/
-│ │ └── database.js # Conexão com MongoDB
-│ ├── controllers/
-│ │ └── postController.js # Lógica dos endpoints
-│ ├── models/
-│ │ └── Post.js # Schema do Post
-│ ├── routes/
-│ │ └── postRoutes.js # Definição das rotas
-│ ├── tests/
-│ │ └── post.test.js # Testes unitários
-│ ├── app.js # Configuração do Express
-│ └── server.js # Entrada da aplicação
-├── frontend/ # Frontend React (Fase 03)
-│ ├── src/
-│ │ ├── App.js
-│ │ ├── components/ # Navbar, PostCard, PrivateRoute
-│ │ ├── context/ # AuthContext
-│ │ ├── pages/ # Home, PostDetail, PostForm, Admin, Login
-│ │ └── services/ # api.js (Axios)
-│ ├── Dockerfile
-│ └── nginx.conf
-├── .github/
-│ └── workflows/
-│ └── ci-cd.yml # Pipeline CI/CD (API + frontend)
-├── .env.example # Variáveis de ambiente exemplo (API)
-├── Dockerfile # Imagem Docker da API
-├── docker-compose.yml # Orquestração: API + frontend + MongoDB
-└── package.json
-
-
-## Setup inicial
+## Setup inicial (ambiente completo)
 
 ### 1. Clone o repositório
 ```bash
@@ -83,15 +61,7 @@ Isso sobe três containers:
 - **Frontend** — `http://localhost:3000`
 - **MongoDB** — `localhost:27017`
 
-### Rodando sem Docker (desenvolvimento)
-
-**API:**
-```bash
-npm install
-npm run dev
-```
-
-**Frontend:**
+### Rodando o frontend sem Docker (desenvolvimento)
 ```bash
 cd frontend
 npm install
@@ -102,6 +72,80 @@ npm start
 
 - **Usuário:** `professor`
 - **Senha:** `postech2026`
+
+## Páginas e funcionalidades
+
+- Página principal — lista de posts com busca por palavra-chave
+- Página de leitura de post
+- Página de criação de postagens
+- Página de edição de postagens
+- Página administrativa — editar/excluir posts
+- Autenticação e autorização (login para professores)
+
+## Testes do frontend
+
+```bash
+cd frontend
+CI=true npm test
+```
+
+## CI/CD
+
+O pipeline do GitHub Actions (`.github/workflows/ci-cd.yml`) executa automaticamente a cada push ou pull request na branch `main`:
+
+1. Roda os testes da API e do frontend em paralelo
+2. Após os testes passarem, valida o build das imagens Docker (API e frontend)
+
+## Experiências e desafios
+
+Durante a integração do frontend com a API na Fase 03, os principais desafios encontrados foram:
+
+- **Módulo ausente causando loop de restart:** o container da API entrou em loop de reinicialização porque o `src/app.js` (que exporta a instância do Express usada pelo `server.js`) não estava presente na pasta de trabalho. O arquivo foi recuperado do histórico do Git e o problema foi resolvido após rebuildar a imagem.
+- **Conflito de portas no Docker Desktop + WSL2:** ao mapear a API para a porta 3000, ela entrou em conflito com o servidor de desenvolvimento do React (`npm start`), que também tenta usar a porta 3000 — o Docker "vencia" o processo do WSL, fazendo o navegador exibir a resposta da API em vez do frontend. A solução foi manter a separação de portas original (API em 3001, frontend em 3000).
+- **Variáveis de ambiente do React em tempo de build:** diferente de aplicações Node.js, o Create React App "queima" variáveis `REACT_APP_*` no momento do `npm run build`, não em runtime. Por isso, `REACT_APP_API_URL` precisou ser passada como `ARG` no Dockerfile do frontend e como `build.args` no `docker-compose.yml`, em vez de como variável de ambiente comum do container.
+- **Teste padrão do Create React App:** o teste inicial gerado automaticamente (`App.test.js`) procurava pelo texto placeholder "learn react", que não existe mais na aplicação customizada. Foi substituído por um teste que valida o carregamento real da página inicial do Blog Dinâmico, permitindo que o pipeline de CI/CD passasse corretamente.
+- **Permissões de arquivo perdidas ao versionar `node_modules` a partir do Windows/WSL:** o binário `jest` perdeu a permissão de execução ao ser commitado do sistema de arquivos do Windows, quebrando o job de testes da API no GitHub Actions (Linux). A correção envolve adicionar `node_modules` e `.env` ao `.gitignore` e deixar o CI instalar as dependências do zero.
+
+---
+
+# Fase 02 — API REST
+
+API REST para a aplicação de Blog Dinâmico, desenvolvida com Node.js, Express e MongoDB.
+
+## Tecnologias
+
+- **Node.js** — Runtime JavaScript
+- **Express** — Framework web
+- **MongoDB + Mongoose** — Banco de dados e ODM
+- **Docker** — Containerização
+- **GitHub Actions** — CI/CD
+- **Jest + Supertest** — Testes unitários
+
+## Estrutura do projeto
+
+```
+src/
+├── config/
+│   └── database.js       # Conexão com MongoDB
+├── controllers/
+│   └── postController.js # Lógica dos endpoints
+├── models/
+│   └── Post.js           # Schema do Post
+├── routes/
+│   └── postRoutes.js     # Definição das rotas
+├── tests/
+│   └── post.test.js      # Testes unitários
+├── app.js                # Configuração do Express
+└── server.js             # Entrada da aplicação
+```
+
+## Setup inicial (somente API)
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
 
 ## Endpoints da API
 
@@ -148,31 +192,12 @@ curl -X PUT http://localhost:3001/posts/<id> \
 curl -X DELETE http://localhost:3001/posts/<id>
 ```
 
-## Testes
+## Testes da API
 
-**API:**
 ```bash
 npm test
 npm test -- --coverage
 ```
-
-**Frontend:**
-```bash
-cd frontend
-CI=true npm test
-```
-
-## CI/CD
-
-O pipeline do GitHub Actions (`.github/workflows/ci-cd.yml`) executa automaticamente a cada push ou pull request na branch `main`:
-
-1. Roda os testes da API e do frontend em paralelo
-2. Após os testes passarem, builda e envia as imagens Docker (API e frontend) para o Docker Hub
-
-### Configurar secrets no GitHub
-- `DOCKER_USERNAME` — usuário do Docker Hub
-- `DOCKER_PASSWORD` — senha do Docker Hub
-- `REACT_APP_API_URL` — URL pública da API, usada no build do frontend
 
 ## Modelo de dados — Post
 
@@ -186,12 +211,3 @@ O pipeline do GitHub Actions (`.github/workflows/ci-cd.yml`) executa automaticam
   "updatedAt": "DateTime"
 }
 ```
-
-## Experiências e desafios
-
-Durante a integração do frontend com a API na Fase 03, os principais desafios encontrados foram:
-
-- **Módulo ausente causando loop de restart:** o container da API entrou em loop de reinicialização porque o `src/app.js` (que exporta a instância do Express usada pelo `server.js`) não estava presente na pasta de trabalho. O arquivo foi recuperado do histórico do Git e o problema foi resolvido após rebuildar a imagem.
-- **Conflito de portas no Docker Desktop + WSL2:** ao mapear a API para a porta 3000, ela entrou em conflito com o servidor de desenvolvimento do React (`npm start`), que também tenta usar a porta 3000 — o Docker "vencia" o processo do WSL, fazendo o navegador exibir a resposta da API em vez do frontend. A solução foi manter a separação de portas original (API em 3001, frontend em 3000).
-- **Variáveis de ambiente do React em tempo de build:** diferente de aplicações Node.js, o Create React App "queima" variáveis `REACT_APP_*` no momento do `npm run build`, não em runtime. Por isso, `REACT_APP_API_URL` precisou ser passada como `ARG` no Dockerfile do frontend e como `build.args` no `docker-compose.yml`, em vez de como variável de ambiente comum do container.
-- **Teste padrão do Create React App:** o teste inicial gerado automaticamente (`App.test.js`) procurava pelo texto placeholder "learn react", que não existe mais na aplicação customizada. Foi substituído por um teste que valida o carregamento real da página inicial do Blog Dinâmico, permitindo que o pipeline de CI/CD passasse corretamente.
